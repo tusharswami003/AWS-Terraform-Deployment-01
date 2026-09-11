@@ -1,19 +1,21 @@
-name: Terraform
+name: Terraform Destroy
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      confirm_destroy:
+        description: 'Type DESTROY to confirm destruction of the dev environment'
+        required: true
+        type: string
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
-  terraform:
+  destroy:
+    if: ${{ inputs.confirm_destroy == 'DESTROY' }}
+
     runs-on: ubuntu-latest
 
     defaults:
@@ -33,17 +35,14 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Format
-        run: terraform fmt -check -recursive
-
       - name: Terraform Init
         run: terraform init
 
       - name: Terraform Validate
         run: terraform validate
 
-      - name: Terraform Plan
-        run: terraform plan
-      
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
+      - name: Terraform Destroy Plan
+        run: terraform plan -destroy
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve
