@@ -7,8 +7,8 @@ subnets = {
   private-b = "10.10.2.0/24"
 }
 
-ec2_ami_id        = "ami-01a00762f46d584a1"
-ec2_key_name      = null
+ec2_ami_id   = "ami-01a00762f46d584a1"
+ec2_key_name = null
 
 app_servers = {
   dev-app-01 = {
