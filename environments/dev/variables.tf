@@ -37,7 +37,7 @@ variable "db_servers" {
   description = "Application servers to deploy"
 
   type = map(object({
-    subnet_name   = string
+    subnet_name = string
   }))
 }
 
