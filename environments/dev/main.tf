@@ -34,7 +34,18 @@ module "security_group" {
 module "ec2" {
   source = "../../modules/ec2"
 
-  name               = "dev-ec2"
+  name               = "dev-ec2-00"
+  ami_id             = var.ec2_ami_id
+  instance_type      = var.ec2_instance_type
+  subnet_id          = module.subnet.subnet_ids["private-a"]
+  security_group_ids = [module.security_group.security_group_id]
+  key_name           = var.ec2_key_name
+}
+
+module "ec2" {
+  source = "../../modules/ec2"
+
+  name               = "dev-ec2-01"
   ami_id             = var.ec2_ami_id
   instance_type      = var.ec2_instance_type
   subnet_id          = module.subnet.subnet_ids["private-a"]
