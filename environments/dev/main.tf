@@ -31,7 +31,7 @@ module "security_group" {
   ]
 }
 
-module "ec2" {
+module "app-ec2" {
   for_each = var.app_servers
 
   source = "../../modules/ec2"
@@ -39,6 +39,19 @@ module "ec2" {
   name               = each.key
   ami_id             = var.ec2_ami_id
   instance_type      = each.value.instance_type
+  subnet_id          = module.subnet.subnet_ids[each.value.subnet_name]
+  security_group_ids = [module.security_group.security_group_id]
+  key_name           = var.ec2_key_name
+}
+
+module "db-ec2" {
+  for_each = var.db_servers
+
+  source = "../../modules/ec2"
+
+  name               = each.key
+  ami_id             = var.ec2_ami_id
+  instance_type      = var.db_instance_type
   subnet_id          = module.subnet.subnet_ids[each.value.subnet_name]
   security_group_ids = [module.security_group.security_group_id]
   key_name           = var.ec2_key_name

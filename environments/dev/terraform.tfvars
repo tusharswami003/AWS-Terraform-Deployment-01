@@ -21,3 +21,15 @@ app_servers = {
     subnet_name   = "private-b"
   }
 }
+
+db_instance_type = "t3.small"
+
+db_servers = {
+  dev-db-01 = {
+    subnet_name   = "private-a"
+  }
+
+  dev-db-02 = {
+    subnet_name   = "private-b"
+  }
+}

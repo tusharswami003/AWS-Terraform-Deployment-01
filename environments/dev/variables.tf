@@ -32,3 +32,16 @@ variable "app_servers" {
     subnet_name   = string
   }))
 }
+
+variable "db_servers" {
+  description = "Application servers to deploy"
+
+  type = map(object({
+    subnet_name   = string
+  }))
+}
+
+variable "db_instance_type" {
+  description = "Instance type for DB EC2 instance"
+  type        = string
+}
