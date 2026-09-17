@@ -31,24 +31,15 @@ module "security_group" {
   ]
 }
 
-module "ec2_00" {
+module "ec2" {
+  for_each = var.app_servers
+
   source = "../../modules/ec2"
 
-  name               = "dev-ec2-00"
+  name               = each.key
   ami_id             = var.ec2_ami_id
-  instance_type      = var.ec2_instance_type
-  subnet_id          = module.subnet.subnet_ids["private-a"]
-  security_group_ids = [module.security_group.security_group_id]
-  key_name           = var.ec2_key_name
-}
-
-module "ec2_01" {
-  source = "../../modules/ec2"
-
-  name               = "dev-ec2-01"
-  ami_id             = var.ec2_ami_id
-  instance_type      = var.ec2_instance_type
-  subnet_id          = module.subnet.subnet_ids["private-a"]
+  instance_type      = each.value.instance_type
+  subnet_id          = module.subnet.subnet_ids[each.value.subnet_name]
   security_group_ids = [module.security_group.security_group_id]
   key_name           = var.ec2_key_name
 }
