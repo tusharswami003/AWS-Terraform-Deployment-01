@@ -9,8 +9,10 @@ variable "vpc_cidr" {
 }
 
 variable "subnets" {
-  description = "Subnet names and CIDR blocks for the dev environment"
-  type        = map(string)
+  type = map(object({
+    cidr_block        = string
+    availability_zone = string
+  }))
 }
 
 variable "ec2_ami_id" {
