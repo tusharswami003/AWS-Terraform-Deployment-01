@@ -18,13 +18,17 @@ variable "ec2_ami_id" {
   type        = string
 }
 
-variable "ec2_instance_type" {
-  description = "EC2 instance type for the dev environment"
-  type        = string
-}
-
 variable "ec2_key_name" {
   description = "EC2 key pair name for the dev instance"
   type        = string
   default     = null
+}
+
+variable "app_servers" {
+  description = "Application servers to deploy"
+
+  type = map(object({
+    instance_type = string
+    subnet_name   = string
+  }))
 }

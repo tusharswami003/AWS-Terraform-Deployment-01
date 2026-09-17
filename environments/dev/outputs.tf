@@ -13,22 +13,20 @@ output "security_group_id" {
   value       = module.security_group.security_group_id
 }
 
-output "ec2-00_instance_id" {
-  description = "ID of the dev EC2 instance"
-  value       = module.ec2_00.instance_id
+output "ec2_instance_ids" {
+  description = "IDs of the application servers"
+
+  value = {
+    for name, server in module.ec2 :
+    name => server.instance_id
+  }
 }
 
-output "ec2_00_private_ip" {
-  description = "Private IP address of the dev EC2 instance"
-  value       = module.ec2_00.private_ip
-}
+output "ec2_private_ips" {
+  description = "Private IPs of the application servers"
 
-output "ec2_01_instance_id" {
-  description = "ID of the dev EC2 instance"
-  value       = module.ec2_01.instance_id
-}
-
-output "ec2_01_private_ip" {
-  description = "Private IP address of the dev EC2 instance"
-  value       = module.ec2_01.private_ip
+  value = {
+    for name, server in module.ec2 :
+    name => server.private_ip
+  }
 }
