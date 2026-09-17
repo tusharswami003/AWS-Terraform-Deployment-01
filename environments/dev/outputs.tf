@@ -27,7 +27,7 @@ output "app_servers" {
 
 output "db_servers" {
   description = "Details of all dev DB EC2 instances"
-  
+
   value = {
     for name, server in module.ec2 :
     name => {
