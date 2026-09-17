@@ -31,7 +31,7 @@ module "security_group" {
   ]
 }
 
-module "ec2" {
+module "ec2-00" {
   source = "../../modules/ec2"
 
   name               = "dev-ec2-00"
@@ -42,7 +42,7 @@ module "ec2" {
   key_name           = var.ec2_key_name
 }
 
-module "ec2" {
+module "ec2-01" {
   source = "../../modules/ec2"
 
   name               = "dev-ec2-01"
