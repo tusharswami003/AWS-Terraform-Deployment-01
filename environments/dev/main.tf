@@ -55,6 +55,58 @@ module "security_group" {
   ]
 }
 
+module "alb_security_group" {
+  source = "../../modules/security-group"
+
+  name        = "dev-alb-sg"
+  description = "Security group for the dev Application Load Balancer"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress_rules = [
+    {
+      description = "Allow HTTP from internet"
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  ]
+
+  egress_rules = [
+    {
+      description = "Allow all outbound traffic"
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  ]
+}
+
+module "alb" {
+  source = "../../modules/alb"
+
+  name   = "dev-app-alb"
+  vpc_id = module.vpc.vpc_id
+
+  subnet_ids = [
+    module.subnet.subnet_ids["public-a"],
+    module.subnet.subnet_ids["public-b"]
+  ]
+
+  security_group_ids = [
+    module.alb_security_group.security_group_id
+  ]
+
+  target_instance_ids = {
+    for name, server in module.app-ec2 :
+    name => server.instance_id
+  }
+
+  target_port       = var.app_port
+  health_check_path = var.health_check_path
+}
+
 module "app-ec2" {
   for_each = var.app_servers
 

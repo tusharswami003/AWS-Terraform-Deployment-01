@@ -55,6 +55,9 @@ app_servers = {
   }
 }
 
+app_port          = 80
+health_check_path = "/"
+
 db_instance_type = "t3.small"
 
 db_servers = {
