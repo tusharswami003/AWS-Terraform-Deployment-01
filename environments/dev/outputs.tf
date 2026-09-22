@@ -8,6 +8,21 @@ output "subnet_ids" {
   value       = module.subnet.subnet_ids
 }
 
+output "internet_gateway_id" {
+  description = "ID of the dev Internet Gateway"
+  value       = module.routing.internet_gateway_id
+}
+
+output "route_table_ids" {
+  description = "Route table IDs for the dev environment"
+
+  value = {
+    public = module.routing.public_route_table_id
+    app    = module.routing.app_route_table_id
+    db     = module.routing.db_route_table_id
+  }
+}
+
 output "security_group_id" {
   description = "ID of the dev EC2 security group"
   value       = module.security_group.security_group_id
