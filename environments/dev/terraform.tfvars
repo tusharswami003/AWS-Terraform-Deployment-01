@@ -6,11 +6,13 @@ subnets = {
   private-a = {
     cidr_block        = "10.10.1.0/24"
     availability_zone = "ap-south-1a"
+    tier              = "app"
   }
 
   private-b = {
     cidr_block        = "10.10.2.0/24"
     availability_zone = "ap-south-1b"
+    tier              = "app"
   }
 }
 
