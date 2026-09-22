@@ -23,9 +23,14 @@ output "route_table_ids" {
   }
 }
 
-output "security_group_id" {
+output "app_security_group_id" {
   description = "ID of the dev EC2 security group"
-  value       = module.security_group.security_group_id
+  value       = module.app_security_group.security_group_id
+}
+
+output "db_security_group_id" {
+  description = "ID of the dev EC2 security group"
+  value       = module.db_security_group.security_group_id
 }
 
 output "alb_dns_name" {
