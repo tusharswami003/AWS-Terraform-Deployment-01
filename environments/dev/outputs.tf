@@ -28,6 +28,21 @@ output "security_group_id" {
   value       = module.security_group.security_group_id
 }
 
+output "alb_dns_name" {
+  description = "DNS name of the dev Application Load Balancer"
+  value       = module.alb.alb_dns_name
+}
+
+output "alb_arn" {
+  description = "ARN of the dev Application Load Balancer"
+  value       = module.alb.alb_arn
+}
+
+output "alb_target_group_arn" {
+  description = "ARN of the dev ALB target group"
+  value       = module.alb.target_group_arn
+}
+
 output "app_servers" {
   description = "Details of all dev APP EC2 instances"
 

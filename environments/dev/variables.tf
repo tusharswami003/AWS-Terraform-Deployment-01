@@ -37,6 +37,18 @@ variable "app_servers" {
   }))
 }
 
+variable "app_port" {
+  description = "Port used by the application servers"
+  type        = number
+  default     = 80
+}
+
+variable "health_check_path" {
+  description = "ALB health check path"
+  type        = string
+  default     = "/"
+}
+
 variable "db_servers" {
   description = "Application servers to deploy"
 
