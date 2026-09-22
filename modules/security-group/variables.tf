@@ -16,10 +16,10 @@ variable "vpc_id" {
 variable "ingress_rules" {
   description = "Inbound rules for the security group"
   type = list(object({
-    description = string
-    from_port   = number
-    to_port     = number
-    protocol    = string
+    description        = string
+    from_port          = number
+    to_port            = number
+    protocol           = string
     cidr_blocks        = optional(list(string), [])
     security_group_ids = optional(list(string), [])
   }))
