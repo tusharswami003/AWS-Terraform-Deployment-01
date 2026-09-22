@@ -59,7 +59,7 @@ app_port          = 80
 health_check_path = "/"
 
 db_instance_type = "t3.small"
-db_port = 5432
+db_port          = 5432
 
 db_servers = {
   dev-db-01 = {
