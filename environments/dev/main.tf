@@ -36,24 +36,6 @@ module "routing" {
   }
 }
 
-module "security_group" {
-  source = "../../modules/security-group"
-
-  name        = "dev-ec2-sg"
-  description = "Security group for dev EC2 instance"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress_rules = []
-  egress_rules = [
-    {
-      description = "Allow all outbound traffic"
-      from_port   = 0
-      to_port     = 0
-      protocol    = "-1"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  ]
-}
 
 module "alb_security_group" {
   source = "../../modules/security-group"
@@ -107,6 +89,68 @@ module "alb" {
   health_check_path = var.health_check_path
 }
 
+module "app_security_group" {
+  source = "../../modules/security-group"
+
+  name        = "dev-app-sg"
+  description = "Security group for dev application servers"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress_rules = [
+    {
+      description = "Allow application traffic from ALB"
+      from_port   = var.app_port
+      to_port     = var.app_port
+      protocol    = "tcp"
+
+      security_group_ids = [
+        module.alb_security_group.security_group_id
+      ]
+    }
+  ]
+
+  egress_rules = [
+    {
+      description = "Allow all outbound traffic"
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  ]
+}
+
+module "db_security_group" {
+  source = "../../modules/security-group"
+
+  name        = "dev-db-sg"
+  description = "Security group for dev database servers"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress_rules = [
+    {
+      description = "Allow database traffic from application servers"
+      from_port   = var.db_port
+      to_port     = var.db_port
+      protocol    = "tcp"
+
+      security_group_ids = [
+        module.app_security_group.security_group_id
+      ]
+    }
+  ]
+
+  egress_rules = [
+    {
+      description = "Allow all outbound traffic"
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  ]
+}
+
 module "app-ec2" {
   for_each = var.app_servers
 
@@ -116,7 +160,7 @@ module "app-ec2" {
   ami_id             = var.ec2_ami_id
   instance_type      = each.value.instance_type
   subnet_id          = module.subnet.subnet_ids[each.value.subnet_name]
-  security_group_ids = [module.security_group.security_group_id]
+  security_group_ids = [module.app_security_group.security_group_id]
   key_name           = var.ec2_key_name
 }
 
@@ -129,6 +173,6 @@ module "db-ec2" {
   ami_id             = var.ec2_ami_id
   instance_type      = var.db_instance_type
   subnet_id          = module.subnet.subnet_ids[each.value.subnet_name]
-  security_group_ids = [module.security_group.security_group_id]
+  security_group_ids = [module.db_security_group.security_group_id]
   key_name           = var.ec2_key_name
 }
