@@ -46,12 +46,12 @@ ec2_key_name = null
 app_servers = {
   dev-app-01 = {
     instance_type = "t3.micro"
-    subnet_name   = "private-a"
+    subnet_name   = "app-a"
   }
 
   dev-app-02 = {
     instance_type = "t3.small"
-    subnet_name   = "private-b"
+    subnet_name   = "app-b"
   }
 }
 
@@ -59,10 +59,10 @@ db_instance_type = "t3.small"
 
 db_servers = {
   dev-db-01 = {
-    subnet_name = "private-a"
+    subnet_name = "db-a"
   }
 
   dev-db-02 = {
-    subnet_name = "private-b"
+    subnet_name = "db-b"
   }
 }
