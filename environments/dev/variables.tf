@@ -61,3 +61,8 @@ variable "db_instance_type" {
   description = "Instance type for DB EC2 instance"
   type        = string
 }
+
+variable "db_port" {
+  description = "Port used by database servers"
+  type        = number
+}
