@@ -12,6 +12,30 @@ module "subnet" {
   subnets = var.subnets
 }
 
+module "routing" {
+  source = "../../modules/routing"
+
+  vpc_id = module.vpc.vpc_id
+
+  public_subnet_ids = {
+    for name, id in module.subnet.subnet_ids :
+    name => id
+    if var.subnets[name].tier == "public"
+  }
+
+  app_subnet_ids = {
+    for name, id in module.subnet.subnet_ids :
+    name => id
+    if var.subnets[name].tier == "app"
+  }
+
+  db_subnet_ids = {
+    for name, id in module.subnet.subnet_ids :
+    name => id
+    if var.subnets[name].tier == "db"
+  }
+}
+
 module "security_group" {
   source = "../../modules/security-group"
 

@@ -3,16 +3,40 @@ aws_region = "ap-south-1"
 vpc_cidr = "10.10.0.0/16"
 
 subnets = {
-  private-a = {
+  public-a = {
     cidr_block        = "10.10.1.0/24"
+    availability_zone = "ap-south-1a"
+    tier              = "public"
+  }
+
+  public-b = {
+    cidr_block        = "10.10.2.0/24"
+    availability_zone = "ap-south-1b"
+    tier              = "public"
+  }
+
+  app-a = {
+    cidr_block        = "10.10.11.0/24"
     availability_zone = "ap-south-1a"
     tier              = "app"
   }
 
-  private-b = {
-    cidr_block        = "10.10.2.0/24"
+  app-b = {
+    cidr_block        = "10.10.12.0/24"
     availability_zone = "ap-south-1b"
     tier              = "app"
+  }
+
+  db-a = {
+    cidr_block        = "10.10.21.0/24"
+    availability_zone = "ap-south-1a"
+    tier              = "db"
+  }
+
+  db-b = {
+    cidr_block        = "10.10.22.0/24"
+    availability_zone = "ap-south-1b"
+    tier              = "db"
   }
 }
 
