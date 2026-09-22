@@ -9,9 +9,11 @@ variable "vpc_cidr" {
 }
 
 variable "subnets" {
+  description = "Subnet configuration for the dev environment"
   type = map(object({
     cidr_block        = string
     availability_zone = string
+    tier              = string
   }))
 }
 
