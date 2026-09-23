@@ -48,16 +48,14 @@ output "alb_target_group_arn" {
   value       = module.alb.target_group_arn
 }
 
-output "app_servers" {
-  description = "Details of all dev APP EC2 instances"
+output "app_autoscaling_group_name" {
+  description = "Application Auto Scaling Group name"
+  value       = module.app_autoscaling.autoscaling_group_name
+}
 
-  value = {
-    for name, server in module.app-ec2 :
-    name => {
-      instance_id = server.instance_id
-      private_ip  = server.private_ip
-    }
-  }
+output "app_launch_template_id" {
+  description = "Application Launch Template ID"
+  value       = module.app_launch_template.launch_template_id
 }
 
 output "db_servers" {

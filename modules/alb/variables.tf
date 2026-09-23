@@ -18,11 +18,6 @@ variable "security_group_ids" {
   type        = list(string)
 }
 
-variable "target_instance_ids" {
-  description = "Map of target names to EC2 instance IDs"
-  type        = map(string)
-}
-
 variable "target_port" {
   description = "Port on which the application listens"
   type        = number

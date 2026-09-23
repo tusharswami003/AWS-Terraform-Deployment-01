@@ -43,17 +43,10 @@ subnets = {
 ec2_ami_id   = "ami-01a00762f46d584a1"
 ec2_key_name = null
 
-app_servers = {
-  dev-app-01 = {
-    instance_type = "t3.micro"
-    subnet_name   = "app-a"
-  }
-
-  dev-app-02 = {
-    instance_type = "t3.small"
-    subnet_name   = "app-b"
-  }
-}
+app_instance_type    = "t3.micro"
+app_min_size         = 2
+app_desired_capacity = 2
+app_max_size         = 4
 
 app_port          = 80
 health_check_path = "/"
