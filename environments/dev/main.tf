@@ -80,11 +80,6 @@ module "alb" {
     module.alb_security_group.security_group_id
   ]
 
-  target_instance_ids = {
-    for name, server in module.app-ec2 :
-    name => server.instance_id
-  }
-
   target_port       = var.app_port
   health_check_path = var.health_check_path
 }
