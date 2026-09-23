@@ -151,17 +151,40 @@ module "db_security_group" {
   ]
 }
 
-module "app-ec2" {
-  for_each = var.app_servers
+module "app_launch_template" {
+  source = "../../modules/launch-template"
 
-  source = "../../modules/ec2"
+  name          = "dev-app"
+  ami_id        = var.ec2_ami_id
+  instance_type = var.app_instance_type
 
-  name               = each.key
-  ami_id             = var.ec2_ami_id
-  instance_type      = each.value.instance_type
-  subnet_id          = module.subnet.subnet_ids[each.value.subnet_name]
-  security_group_ids = [module.app_security_group.security_group_id]
-  key_name           = var.ec2_key_name
+  security_group_ids = [
+    module.app_security_group.security_group_id
+  ]
+
+  key_name = var.ec2_key_name
+}
+
+module "app_autoscaling" {
+  source = "../../modules/autoscaling"
+
+  name = "dev-app-asg"
+
+  launch_template_id      = module.app_launch_template.launch_template_id
+  launch_template_version = tostring(module.app_launch_template.latest_version)
+
+  subnet_ids = [
+    module.subnet.subnet_ids["app-a"],
+    module.subnet.subnet_ids["app-b"]
+  ]
+
+  target_group_arns = [
+    module.alb.target_group_arn
+  ]
+
+  min_size         = var.app_min_size
+  desired_capacity = var.app_desired_capacity
+  max_size         = var.app_max_size
 }
 
 module "db-ec2" {

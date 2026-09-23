@@ -28,13 +28,24 @@ variable "ec2_key_name" {
   default     = null
 }
 
-variable "app_servers" {
-  description = "Application servers to deploy"
+variable "app_instance_type" {
+  description = "Instance type used by application Auto Scaling Group"
+  type        = string
+}
 
-  type = map(object({
-    instance_type = string
-    subnet_name   = string
-  }))
+variable "app_min_size" {
+  description = "Minimum number of application instances"
+  type        = number
+}
+
+variable "app_desired_capacity" {
+  description = "Desired number of application instances"
+  type        = number
+}
+
+variable "app_max_size" {
+  description = "Maximum number of application instances"
+  type        = number
 }
 
 variable "app_port" {
