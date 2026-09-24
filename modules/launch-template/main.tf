@@ -6,6 +6,10 @@ resource "aws_launch_template" "this" {
 
   vpc_security_group_ids = var.security_group_ids
 
+  iam_instance_profile {
+    name = var.iam_instance_profile_name
+  }
+
   user_data = base64encode(<<-EOF
     #!/bin/bash
 
