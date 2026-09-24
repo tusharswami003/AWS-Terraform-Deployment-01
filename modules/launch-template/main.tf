@@ -24,7 +24,7 @@ resource "aws_launch_template" "this" {
   <!DOCTYPE html>
   <html>
   <head>
-      <title>Tushar Cloud ☁️</title>
+      <title>Tushar Cloud Project</title>
       <style>
           body {
               background: #0d1117;
@@ -71,13 +71,13 @@ resource "aws_launch_template" "this" {
 
   <body>
 
-      <h1>☁️ Tushar Cloud Operations Center</h1>
+      <h1>&#9729;&#65039; Tushar Cloud Operations Center  &#9729;&#65039;</h1>
 
       <div class="card">
 
-          <p class="status">● SYSTEM IS SOMEHOW WORKING</p>
+          <p class="status">&#128994; SYSTEM IS SOMEHOW WORKING</p>
 
-          <h2>Congratulations 🎉</h2>
+          <h2>Congratulations &#127881;</h2>
 
           <p>
               You have successfully reached an EC2 instance
@@ -95,7 +95,7 @@ resource "aws_launch_template" "this" {
           </p>
 
           <p>
-              Internet 🌍
+              Internet &#127757;
               → ALB
               → Target Group
               → Auto Scaling Group
@@ -104,7 +104,7 @@ resource "aws_launch_template" "this" {
           </p>
 
           <p>
-              NAT Gateway bill is also successfully running. 💸
+              NAT Gateway bill is also successfully running. &#128184; &#128184; &#128184;
           </p>
 
           <p class="small">
