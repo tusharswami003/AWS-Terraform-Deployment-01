@@ -11,18 +11,116 @@ resource "aws_launch_template" "this" {
   }
 
   user_data = base64encode(<<-USERDATA
-    #!/bin/bash
-    set -e
-    apt-get update
-    apt-get install -y nginx
+  #!/bin/bash
+  set -e
 
-    systemctl enable nginx
-    systemctl start nginx
+  apt-get update
+  apt-get install -y nginx
 
-    echo "<h1>This is Tushar's demo Project</h1>" > /var/www/html/index.html
-    echo "<p>Deployed by Terraform Auto Scaling Group</p>" >> /var/www/html/index.html
-    echo "<p>Hello from $(hostname)</p>" >> /var/www/html/index.html
-  USERDATA
+  HOSTNAME=$(hostname)
+  PRIVATE_IP=$(hostname -I | awk '{print $1}')
+
+  cat > /var/www/html/index.html <<HTML
+  <!DOCTYPE html>
+  <html>
+  <head>
+      <title>Tushar Cloud ☁️</title>
+      <style>
+          body {
+              background: #0d1117;
+              color: #c9d1d9;
+              font-family: Arial, sans-serif;
+              text-align: center;
+              padding-top: 70px;
+          }
+
+          h1 {
+              font-size: 48px;
+              color: #58a6ff;
+          }
+
+          .card {
+              background: #161b22;
+              width: 550px;
+              margin: auto;
+              padding: 30px;
+              border-radius: 15px;
+              box-shadow: 0 0 25px rgba(88,166,255,0.2);
+          }
+
+          .status {
+              color: #3fb950;
+              font-size: 22px;
+              font-weight: bold;
+          }
+
+          .server {
+              background: #0d1117;
+              padding: 15px;
+              margin-top: 20px;
+              border-radius: 8px;
+              font-family: monospace;
+          }
+
+          .small {
+              color: #8b949e;
+              margin-top: 30px;
+          }
+      </style>
+  </head>
+
+  <body>
+
+      <h1>☁️ Tushar Cloud Operations Center</h1>
+
+      <div class="card">
+
+          <p class="status">● SYSTEM IS SOMEHOW WORKING</p>
+
+          <h2>Congratulations 🎉</h2>
+
+          <p>
+              You have successfully reached an EC2 instance
+              hiding somewhere inside a private subnet.
+          </p>
+
+          <div class="server">
+              Server: $HOSTNAME
+              <br>
+              Private IP: $PRIVATE_IP
+          </div>
+
+          <p>
+              Your request survived:
+          </p>
+
+          <p>
+              Internet 🌍
+              → ALB
+              → Target Group
+              → Auto Scaling Group
+              → EC2
+              → NGINX
+          </p>
+
+          <p>
+              NAT Gateway bill is also successfully running. 💸
+          </p>
+
+          <p class="small">
+              Infrastructure deployed with Terraform.<br>
+              Servers harmed during debugging: several.
+          </p>
+
+      </div>
+
+  </body>
+  </html>
+  HTML
+
+  systemctl enable nginx
+  systemctl restart nginx
+USERDATA
   )
 
   tag_specifications {
