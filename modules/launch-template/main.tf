@@ -13,7 +13,7 @@ resource "aws_launch_template" "this" {
   user_data = base64encode(<<-USERDATA
     #!/bin/bash
     set -e
-
+    apt-get update
     apt-get install -y nginx
 
     systemctl enable nginx
