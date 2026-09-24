@@ -10,7 +10,7 @@ output "subnet_ids" {
 
 output "internet_gateway_id" {
   description = "ID of the dev Internet Gateway"
-  value       = module.routing.internet_gateway_id
+  value       = module.vpc.internet_gateway_id
 }
 
 output "route_table_ids" {
