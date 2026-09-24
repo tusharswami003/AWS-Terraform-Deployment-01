@@ -24,6 +24,7 @@ resource "aws_launch_template" "this" {
   <!DOCTYPE html>
   <html>
   <head>
+    <meta charset="UTF-8">
       <title>Tushar Cloud Project</title>
       <style>
           body {
@@ -96,11 +97,11 @@ resource "aws_launch_template" "this" {
 
           <p>
               Internet &#127757;
-              → ALB
-              → Target Group
-              → Auto Scaling Group
-              → EC2
-              → NGINX
+              &rarr; ALB
+              &rarr; Target Group
+              &rarr; Auto Scaling Group
+              &rarr; EC2
+              &rarr; NGINX
           </p>
 
           <p>
