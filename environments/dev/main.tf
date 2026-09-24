@@ -196,6 +196,10 @@ module "app_autoscaling" {
   min_size         = var.app_min_size
   desired_capacity = var.app_desired_capacity
   max_size         = var.app_max_size
+
+  depends_on = [
+    module.routing
+  ]
 }
 
 module "db-ec2" {
