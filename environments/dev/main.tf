@@ -156,6 +156,10 @@ module "db_security_group" {
   ]
 }
 
+module "ec2_ssm" {
+  source = "../../modules/ec2-ssm"
+}
+
 module "app_launch_template" {
   source = "../../modules/launch-template"
 
@@ -166,6 +170,8 @@ module "app_launch_template" {
   security_group_ids = [
     module.app_security_group.security_group_id
   ]
+
+  iam_instance_profile_name = module.ec2_ssm.instance_profile_name
 
   key_name = var.ec2_key_name
 }
