@@ -1,18 +1,10 @@
-resource "aws_internet_gateway" "this" {
-  vpc_id = var.vpc_id
-
-  tags = {
-    Name = "dev-igw"
-  }
-}
-
 # route table and it's association for public subnets
 resource "aws_route_table" "public" {
   vpc_id = var.vpc_id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.this.id
+    gateway_id = var.internet_gateway_id
   }
 
   tags = {
@@ -30,6 +22,10 @@ resource "aws_route_table_association" "public" {
 # route table and it's association for app subnets
 resource "aws_route_table" "app" {
   vpc_id = var.vpc_id
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = var.nat_gateway_id
+  }
 
   tags = {
     Name = "dev-app-rt"

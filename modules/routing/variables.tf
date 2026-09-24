@@ -17,3 +17,13 @@ variable "db_subnet_ids" {
   description = "Map of database subnet names to subnet IDs"
   type        = map(string)
 }
+
+variable "internet_gateway_id" {
+  description = "Internet Gateway ID for public subnet routing"
+  type        = string
+}
+
+variable "nat_gateway_id" {
+  description = "NAT Gateway used by application subnets"
+  type        = string
+}
