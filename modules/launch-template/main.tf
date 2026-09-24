@@ -10,20 +10,19 @@ resource "aws_launch_template" "this" {
     name = var.iam_instance_profile_name
   }
 
-  user_data = base64encode(<<-EOF
+  user_data = base64encode(<<-USERDATA
     #!/bin/bash
+    set -e
 
-    apt-get update -y
     apt-get install -y nginx
 
     systemctl enable nginx
     systemctl start nginx
 
-    cat > /var/www/html/index.html <<EOF
-    <h1>This is Tushar's demo Project</h1>
-    <p>Deployed by Terraform Auto Scaling Group</p>
-    <p>Hello from $(hostname)</p>
-    EOF
+    echo "<h1>This is Tushar's demo Project</h1>" > /var/www/html/index.html
+    echo "<p>Deployed by Terraform Auto Scaling Group</p>" >> /var/www/html/index.html
+    echo "<p>Hello from $(hostname)</p>" >> /var/www/html/index.html
+  USERDATA
   )
 
   tag_specifications {
