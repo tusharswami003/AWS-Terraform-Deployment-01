@@ -6,7 +6,21 @@ resource "aws_launch_template" "this" {
 
   vpc_security_group_ids = var.security_group_ids
 
-  user_data = var.user_data != null ? base64encode(var.user_data) : null
+  user_data = base64encode(<<-EOF
+    #!/bin/bash
+
+    apt-get update -y
+    apt-get install -y nginx
+
+    systemctl enable nginx
+    systemctl start nginx
+
+    cat > /var/www/html/index.html <<EOF
+    <h1>This is Tushar's demo Project</h1>
+    <p>Deployed by Terraform Auto Scaling Group</p>
+    <p>Hello from $(hostname)</p>
+    EOF
+  )
 
   tag_specifications {
     resource_type = "instance"
