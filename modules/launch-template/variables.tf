@@ -29,3 +29,8 @@ variable "user_data" {
   type        = string
   default     = null
 }
+
+variable "iam_instance_profile_name" {
+  description = "IAM instance profile attached to EC2 instances"
+  type        = string
+}
