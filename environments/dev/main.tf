@@ -12,10 +12,20 @@ module "subnet" {
   subnets = var.subnets
 }
 
+module "nat" {
+  source = "../../modules/nat"
+
+  environment      = "dev"
+  public_subnet_id = module.subnet.subnet_ids["public-a"]
+
+}
+
 module "routing" {
   source = "../../modules/routing"
 
-  vpc_id = module.vpc.vpc_id
+  vpc_id              = module.vpc.vpc_id
+  internet_gateway_id = module.vpc.internet_gateway_id
+  nat_gateway_id      = module.nat.nat_gateway_id
 
   public_subnet_ids = {
     for name, id in module.subnet.subnet_ids :
