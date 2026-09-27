@@ -10,8 +10,6 @@ module "subnet" {
 
   vpc_id  = module.vpc.vpc_id
   subnets = var.subnets
-
-  environment = var.environment
 }
 
 module "nat" {
@@ -47,11 +45,11 @@ module "eks_cluster_role" {
 
   role_name = "${var.environment}-eks-cluster-role"
 
-  trusted_services = [
+  service_principals = [
     "eks.amazonaws.com"
   ]
 
-  policy_arns = [
+  managed_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
   ]
 }
@@ -61,11 +59,11 @@ module "eks_node_role" {
 
   role_name = "${var.environment}-eks-node-role"
 
-  trusted_services = [
+  service_principals = [
     "ec2.amazonaws.com"
   ]
 
-  policy_arns = [
+  managed_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly",
     "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
