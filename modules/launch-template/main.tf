@@ -15,7 +15,7 @@ resource "aws_launch_template" "this" {
   set -e
 
   apt-get update
-  apt-get install -y nginx
+  apt-get install -y nginx unzip awscli
 
   HOSTNAME=$(hostname)
   PRIVATE_IP=$(hostname -I | awk '{print $1}')
