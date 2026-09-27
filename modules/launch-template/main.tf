@@ -11,7 +11,7 @@ resource "aws_launch_template" "this" {
   }
 
   user_data = base64encode(var.user_data)
-    
+
   tag_specifications {
     resource_type = "instance"
 
