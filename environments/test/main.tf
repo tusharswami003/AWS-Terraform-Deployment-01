@@ -118,7 +118,7 @@ module "eks_node_group" {
   depends_on = [
     module.eks,
     module.eks_node_role,
-    module.route,
+    module.routing,
     module.nat_gateway
   ]
 }
