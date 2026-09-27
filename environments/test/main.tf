@@ -119,6 +119,6 @@ module "eks_node_group" {
     module.eks,
     module.eks_node_role,
     module.routing,
-    module.nat_gateway
+    module.nat
   ]
 }
