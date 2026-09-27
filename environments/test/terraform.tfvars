@@ -1,5 +1,5 @@
-aws_region  = "ap-south-1"
-environment = "test"
+aws_region   = "ap-south-1"
+environment  = "test"
 project_name = "terraform-eks"
 
 vpc_cidr = "10.20.0.0/16"
