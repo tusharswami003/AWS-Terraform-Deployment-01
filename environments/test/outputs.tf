@@ -23,7 +23,7 @@ output "private_subnet_ids" {
 
 output "nat_gateway_id" {
   description = "NAT Gateway ID"
-  value       = module.nat_gateway.nat_gateway_id
+  value       = module.nat.nat_gateway_id
 }
 
 output "eks_cluster_name" {
