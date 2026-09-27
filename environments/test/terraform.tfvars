@@ -30,6 +30,18 @@ subnets = {
     availability_zone = "ap-south-1b"
     tier              = "app"
   }
+
+  db-a = {
+    cidr_block        = "10.10.21.0/24"
+    availability_zone = "ap-south-1a"
+    tier              = "db"
+  }
+
+  db-b = {
+    cidr_block        = "10.10.22.0/24"
+    availability_zone = "ap-south-1b"
+    tier              = "db"
+  }
 }
 
 eks_cluster_name   = "test-eks-cluster"
