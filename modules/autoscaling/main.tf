@@ -16,6 +16,16 @@ resource "aws_autoscaling_group" "this" {
     version = var.launch_template_version
   }
 
+  enabled_metrics = [
+    "GroupDesiredCapacity",
+    "GroupInServiceInstances",
+    "GroupPendingInstances",
+    "GroupTerminatingInstances",
+    "GroupTotalInstances"
+  ]
+
+  metrics_granularity = "1Minute"
+
   tag {
     key                 = "Name"
     value               = var.name
