@@ -156,10 +156,6 @@ module "db_security_group" {
   ]
 }
 
-module "ec2_ssm" {
-  source = "../../modules/ec2-ssm"
-}
-
 module "app_launch_template" {
   source = "../../modules/launch-template"
 
@@ -174,6 +170,7 @@ module "app_launch_template" {
   iam_instance_profile_name = module.app_ec2_iam.instance_profile_name
 
   key_name = var.ec2_key_name
+  user_data = file("${path.module}/user-data.sh")
 }
 
 module "app_ec2_iam" {
@@ -254,6 +251,7 @@ module "app_autoscaling" {
 
   depends_on = [
     module.routing
+    module.app_ec2_iam
   ]
 }
 
