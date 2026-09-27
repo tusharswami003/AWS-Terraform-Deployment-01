@@ -10,28 +10,24 @@ subnets = {
   public-a = {
     cidr_block        = "10.20.1.0/24"
     availability_zone = "ap-south-1a"
-    public            = true
     tier              = "public"
   }
 
   public-b = {
     cidr_block        = "10.20.2.0/24"
     availability_zone = "ap-south-1b"
-    public            = true
     tier              = "public"
   }
 
   private-a = {
     cidr_block        = "10.20.11.0/24"
     availability_zone = "ap-south-1a"
-    public            = false
     tier              = "app"
   }
 
   private-b = {
     cidr_block        = "10.20.12.0/24"
     availability_zone = "ap-south-1b"
-    public            = false
     tier              = "app"
   }
 }
