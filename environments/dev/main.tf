@@ -250,7 +250,7 @@ module "app_autoscaling" {
   max_size         = var.app_max_size
 
   depends_on = [
-    module.routing
+    module.routing,
     module.app_ec2_iam
   ]
 }
