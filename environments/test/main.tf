@@ -38,6 +38,12 @@ module "routing" {
     name => id
     if var.subnets[name].tier == "app"
   }
+
+  db_subnet_ids = {
+    for name, id in module.subnet.subnet_ids :
+    name => id
+    if var.subnets[name].tier == "db"
+  }
 }
 
 module "eks_cluster_role" {
