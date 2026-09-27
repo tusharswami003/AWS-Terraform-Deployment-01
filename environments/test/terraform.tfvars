@@ -6,7 +6,6 @@ vpc_cidr = "10.20.0.0/16"
 
 
 subnets = {
-
   public-a = {
     cidr_block        = "10.20.1.0/24"
     availability_zone = "ap-south-1a"
@@ -29,18 +28,6 @@ subnets = {
     cidr_block        = "10.20.12.0/24"
     availability_zone = "ap-south-1b"
     tier              = "app"
-  }
-
-  db-a = {
-    cidr_block        = "10.10.21.0/24"
-    availability_zone = "ap-south-1a"
-    tier              = "db"
-  }
-
-  db-b = {
-    cidr_block        = "10.10.22.0/24"
-    availability_zone = "ap-south-1b"
-    tier              = "db"
   }
 }
 
