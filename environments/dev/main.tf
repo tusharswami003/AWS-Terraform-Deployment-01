@@ -169,7 +169,7 @@ module "app_launch_template" {
 
   iam_instance_profile_name = module.app_ec2_iam.instance_profile_name
 
-  key_name = var.ec2_key_name
+  key_name  = var.ec2_key_name
   user_data = file("${path.module}/user-data.sh")
 }
 
@@ -250,7 +250,7 @@ module "app_autoscaling" {
   max_size         = var.app_max_size
 
   depends_on = [
-    module.routing
+    module.routing,
     module.app_ec2_iam
   ]
 }
