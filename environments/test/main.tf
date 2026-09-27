@@ -91,7 +91,7 @@ module "eks" {
 
   depends_on = [
     module.eks_cluster_role,
-    module.route
+    module.routing
   ]
 }
 
