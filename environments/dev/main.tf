@@ -267,3 +267,15 @@ module "db-ec2" {
   security_group_ids = [module.db_security_group.security_group_id]
   key_name           = var.ec2_key_name
 }
+
+module "monitoring" {
+  source = "../../modules/monitoring"
+
+  dashboard_name = "dev-app-platform-dashboard"
+  region         = "ap-south-1"
+
+  load_balancer_arn_suffix = module.alb.load_balancer_arn_suffix
+  target_group_arn_suffix  = module.alb.target_group_arn_suffix
+
+  autoscaling_group_name = module.app_autoscaling.autoscaling_group_name
+}
