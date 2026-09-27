@@ -171,9 +171,64 @@ module "app_launch_template" {
     module.app_security_group.security_group_id
   ]
 
-  iam_instance_profile_name = module.ec2_ssm.instance_profile_name
+  iam_instance_profile_name = module.app_ec2_iam.instance_profile_name
 
   key_name = var.ec2_key_name
+}
+
+module "app_ec2_iam" {
+  source = "../../modules/iam"
+
+  role_name = "dev-app-ec2-role"
+
+  service_principals = [
+    "ec2.amazonaws.com"
+  ]
+
+  managed_policy_arns = [
+    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  ]
+
+  inline_policies = {
+    devops_racer_s3_read = jsonencode({
+      Version = "2012-10-17"
+
+      Statement = [
+        {
+          Sid    = "ReadDevOpsRacerArtifacts"
+          Effect = "Allow"
+
+          Action = [
+            "s3:GetObject"
+          ]
+
+          Resource = [
+            "arn:aws:s3:::devops-racer/artifacts/*"
+          ]
+        },
+        {
+          Sid    = "GetArtifactBucketLocation"
+          Effect = "Allow"
+
+          Action = [
+            "s3:GetBucketLocation"
+          ]
+
+          Resource = [
+            "arn:aws:s3:::devops-racer"
+          ]
+        }
+      ]
+    })
+  }
+
+  create_instance_profile = true
+  instance_profile_name   = "dev-app-ec2-profile"
+
+  tags = {
+    Environment = "dev"
+    Purpose     = "Application servers"
+  }
 }
 
 module "app_autoscaling" {
