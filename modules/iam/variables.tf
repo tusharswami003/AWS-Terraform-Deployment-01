@@ -37,3 +37,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "assume_role_policy_json" {
+  description = "Optional custom IAM trust policy JSON"
+  type        = string
+  default     = null
+}

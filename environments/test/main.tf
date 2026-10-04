@@ -154,3 +154,58 @@ resource "aws_iam_policy" "aws_load_balancer_controller" {
     "${path.module}/iam/aws-load-balancer-controller-policy.json"
   )
 }
+
+data "aws_iam_policy_document" "aws_load_balancer_controller_assume_role" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "sts:AssumeRoleWithWebIdentity"
+    ]
+
+    principals {
+      type = "Federated"
+
+      identifiers = [
+        aws_iam_openid_connect_provider.eks.arn
+      ]
+    }
+
+    condition {
+      test = "StringEquals"
+
+      variable = "${replace(module.eks.oidc_issuer_url, "https://", "")}:aud"
+
+      values = [
+        "sts.amazonaws.com"
+      ]
+    }
+
+    condition {
+      test = "StringEquals"
+
+      variable = "${replace(module.eks.oidc_issuer_url, "https://", "")}:sub"
+
+      values = [
+        "system:serviceaccount:kube-system:aws-load-balancer-controller"
+      ]
+    }
+  }
+}
+
+module "aws_load_balancer_controller_role" {
+  source = "../../modules/iam"
+
+  role_name = "${var.environment}-aws-load-balancer-controller-role"
+
+  assume_role_policy_json = data.aws_iam_policy_document.aws_load_balancer_controller_assume_role.json
+
+  managed_policy_arns = [
+    aws_iam_policy.aws_load_balancer_controller.arn
+  ]
+
+  tags = {
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
