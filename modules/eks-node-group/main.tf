@@ -18,5 +18,9 @@ resource "aws_eks_node_group" "this" {
     max_unavailable = 1
   }
 
+  lifecycle {
+    create_before_destroy = true
+  }
+
   tags = var.tags
 }
