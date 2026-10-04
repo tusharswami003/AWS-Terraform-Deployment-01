@@ -34,6 +34,8 @@ subnets = {
 eks_cluster_name   = "test-eks-cluster"
 kubernetes_version = "1.36"
 
+eks_admin_principal_arn = "arn:aws:iam::190944421381:root"
+
 eks_node_group_name = "test-eks-node-group"
 
 eks_instance_types = [

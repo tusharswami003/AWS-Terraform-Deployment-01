@@ -39,6 +39,11 @@ variable "kubernetes_version" {
   type        = string
 }
 
+variable "eks_admin_principal_arn" {
+  description = "IAM principal that should receive EKS cluster admin access"
+  type        = string
+}
+
 variable "eks_node_group_name" {
   description = "Name of the EKS managed node group"
   type        = string
