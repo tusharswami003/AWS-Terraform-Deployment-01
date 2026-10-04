@@ -146,3 +146,11 @@ resource "aws_iam_openid_connect_provider" "eks" {
     Environment = var.environment
   }
 }
+
+resource "aws_iam_policy" "aws_load_balancer_controller" {
+  name = "${var.environment}-AWSLoadBalancerControllerIAMPolicy"
+
+  policy = file(
+    "${path.module}/iam/aws-load-balancer-controller-policy.json"
+  )
+}
