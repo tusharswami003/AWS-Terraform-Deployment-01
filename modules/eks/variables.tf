@@ -18,3 +18,8 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+variable "admin_principal_arn" {
+  description = "IAM principal that should receive EKS cluster admin access"
+  type        = string
+}

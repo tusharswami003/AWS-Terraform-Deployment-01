@@ -89,6 +89,8 @@ module "eks" {
     module.subnet.subnet_ids["private-b"]
   ]
 
+  admin_principal_arn = var.eks_admin_principal_arn
+
   depends_on = [
     module.eks_cluster_role,
     module.routing
