@@ -10,10 +10,10 @@ variable "environment" {
 }
 
 variable "subnets" {
-  description = "Configuration of subnets to create"
   type = map(object({
     cidr_block        = string
     availability_zone = string
     tier              = string
+    tags              = optional(map(string), {})
   }))
 }
