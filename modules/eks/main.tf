@@ -14,6 +14,10 @@ resource "aws_eks_cluster" "this" {
     support_type = "STANDARD"
   }
 
+  access_config {
+    authentication_mode = "API_AND_CONFIG_MAP"
+  }
+
   tags = var.tags
 }
 
@@ -33,4 +37,8 @@ resource "aws_eks_access_policy_association" "admin" {
   access_scope {
     type = "cluster"
   }
+
+  depends_on = [
+    aws_eks_access_entry.admin
+  ]
 }
