@@ -6,6 +6,7 @@ variable "role_name" {
 variable "service_principals" {
   description = "AWS services allowed to assume this role"
   type        = list(string)
+  default     = null
 }
 
 variable "managed_policy_arns" {
