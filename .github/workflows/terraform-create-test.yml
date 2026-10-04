@@ -43,3 +43,56 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
+
+  bootstrap-argocd:
+    name: Bootstrap Argo CD
+    runs-on: ubuntu-latest
+
+    needs: terraform
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::190944421381:role/github-actions-terraform-dev
+          aws-region: ap-south-1
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v5
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v5
+
+      - name: Configure EKS kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --region ap-south-1 \
+            --name test-eks-cluster
+
+      - name: Verify Cluster Access
+        run: |
+          kubectl get nodes
+          kubectl get pods -A
+
+      - name: Add Argo Helm Repository
+        run: |
+          helm repo add argo https://argoproj.github.io/argo-helm
+          helm repo update
+
+      - name: Install Argo CD
+        run: |
+          helm upgrade --install argocd argo/argo-cd \
+            --namespace argocd \
+            --create-namespace \
+            --version 10.9.2 \
+            --wait \
+            --timeout 10m
+
+      - name: Verify Argo CD
+        run: |
+          kubectl get pods -n argocd
+          kubectl get svc -n argocd
