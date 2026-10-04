@@ -6,6 +6,7 @@ variable "role_name" {
 variable "service_principals" {
   description = "AWS services allowed to assume this role"
   type        = list(string)
+  default     = null
 }
 
 variable "managed_policy_arns" {
@@ -36,4 +37,10 @@ variable "tags" {
   description = "Tags applied to IAM resources"
   type        = map(string)
   default     = {}
+}
+
+variable "assume_role_policy_json" {
+  description = "Optional custom IAM trust policy JSON"
+  type        = string
+  default     = null
 }

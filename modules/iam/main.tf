@@ -1,20 +1,22 @@
 resource "aws_iam_role" "this" {
   name = var.role_name
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
+  assume_role_policy = var.assume_role_policy_json != null ? (
+    var.assume_role_policy_json
+    ) : jsonencode({
+      Version = "2012-10-17"
 
-    Statement = [
-      {
-        Effect = "Allow"
+      Statement = [
+        {
+          Effect = "Allow"
 
-        Principal = {
-          Service = var.service_principals
+          Principal = {
+            Service = var.service_principals
+          }
+
+          Action = "sts:AssumeRole"
         }
-
-        Action = "sts:AssumeRole"
-      }
-    ]
+      ]
   })
 
   tags = var.tags
