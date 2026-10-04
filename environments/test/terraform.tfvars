@@ -10,24 +10,40 @@ subnets = {
     cidr_block        = "10.20.1.0/24"
     availability_zone = "ap-south-1a"
     tier              = "public"
+
+    tags = {
+      "kubernetes.io/role/elb" = "1"
+    }
   }
 
   public-b = {
     cidr_block        = "10.20.2.0/24"
     availability_zone = "ap-south-1b"
     tier              = "public"
+
+    tags = {
+      "kubernetes.io/role/elb" = "1"
+    }
   }
 
   private-a = {
     cidr_block        = "10.20.11.0/24"
     availability_zone = "ap-south-1a"
     tier              = "app"
+
+    tags = {
+      "kubernetes.io/role/internal-elb" = "1"
+    }
   }
 
   private-b = {
     cidr_block        = "10.20.12.0/24"
     availability_zone = "ap-south-1b"
     tier              = "app"
+
+    tags = {
+      "kubernetes.io/role/internal-elb" = "1"
+    }
   }
 }
 
