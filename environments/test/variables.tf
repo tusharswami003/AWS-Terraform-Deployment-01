@@ -20,12 +20,11 @@ variable "vpc_cidr" {
 }
 
 variable "subnets" {
-  description = "Subnets for the test environment"
-
   type = map(object({
     cidr_block        = string
     availability_zone = string
     tier              = string
+    tags              = optional(map(string), {})
   }))
 }
 
