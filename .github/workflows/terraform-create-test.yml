@@ -48,6 +48,10 @@ jobs:
     name: Bootstrap Argo CD
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: environments/test
+
     needs: terraform
 
     permissions:
@@ -92,7 +96,27 @@ jobs:
             --wait \
             --timeout 10m
 
-      - name: Verify Argo CD
+      - name: Configure Argo CD private GitHub repository
+        shell: bash
+        env:
+          GITHUB_APP_ID: ${{ secrets.ARGOCD_GITHUB_APP_ID }}
+          GITHUB_APP_INSTALLATION_ID: ${{ secrets.ARGOCD_GITHUB_APP_INSTALLATION_ID }}
+          GITHUB_APP_PRIVATE_KEY: ${{ secrets.ARGOCD_GITHUB_APP_PRIVATE_KEY }}
+
         run: |
-          kubectl get pods -n argocd
-          kubectl get svc -n argocd
+          kubectl create secret generic eks-platform-config-repo \
+            --namespace argocd \
+            --from-literal=type=git \
+            --from-literal=url=https://github.com/tusharswami003/eks-platform-config.git \
+            --from-literal=githubAppID="$GITHUB_APP_ID" \
+            --from-literal=githubAppInstallationID="$GITHUB_APP_INSTALLATION_ID" \
+            --from-literal=githubAppPrivateKey="$GITHUB_APP_PRIVATE_KEY" \
+            --dry-run=client -o yaml \
+          | kubectl label --local -f - \
+              argocd.argoproj.io/secret-type=repository \
+              -o yaml \
+          | kubectl apply -f -
+            
+      - name: Bootstrap GitOps Root Application
+        run: |
+          kubectl apply -f argocd/bootstrap/test-root-app.yaml
