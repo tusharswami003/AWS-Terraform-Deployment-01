@@ -48,10 +48,6 @@ jobs:
     name: Bootstrap Argo CD
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: environments/test
-
     needs: terraform
 
     permissions:
@@ -116,7 +112,7 @@ jobs:
               argocd.argoproj.io/secret-type=repository \
               -o yaml \
           | kubectl apply -f -
-            
+
       - name: Bootstrap GitOps Root Application
         run: |
-          kubectl apply -f argocd/bootstrap/test-root-app.yaml
+          kubectl apply -f environments/test/argocd/bootstrap/root-app.yaml
