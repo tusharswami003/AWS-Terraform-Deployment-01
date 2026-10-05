@@ -78,11 +78,6 @@ jobs:
             --region ap-south-1 \
             --name test-eks-cluster
 
-      - name: Verify Cluster Access
-        run: |
-          kubectl get nodes
-          kubectl get pods -A
-
       - name: Add Argo Helm Repository
         run: |
           helm repo add argo https://argoproj.github.io/argo-helm
