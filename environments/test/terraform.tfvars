@@ -52,7 +52,7 @@ kubernetes_version = "1.36"
 
 eks_admin_principal_arn = "arn:aws:iam::190944421381:root"
 
-eks_node_group_name = "test-eks-node-group-v2"
+eks_node_group_name = "test-eks-node-group-v3"
 
 eks_instance_types = [
   "t3.small"
