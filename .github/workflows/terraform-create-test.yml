@@ -47,6 +47,7 @@ jobs:
   bootstrap-argocd:
     name: Bootstrap Argo CD
     runs-on: ubuntu-latest
+    environment: test
 
     needs: terraform
 
