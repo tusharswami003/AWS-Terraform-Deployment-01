@@ -209,3 +209,82 @@ module "aws_load_balancer_controller_role" {
     Project     = var.project_name
   }
 }
+
+data "aws_iam_policy_document" "tushar_web_assume_role" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "sts:AssumeRoleWithWebIdentity"
+    ]
+
+    principals {
+      type = "Federated"
+
+      identifiers = [
+        aws_iam_openid_connect_provider.eks.arn
+      ]
+    }
+
+    condition {
+      test = "StringEquals"
+
+      variable = "${replace(
+        module.eks.oidc_issuer_url,
+        "https://",
+        ""
+      )}:aud"
+
+      values = [
+        "sts.amazonaws.com"
+      ]
+    }
+
+    condition {
+      test = "StringEquals"
+
+      variable = "${replace(
+        module.eks.oidc_issuer_url,
+        "https://",
+        ""
+      )}:sub"
+
+      values = [
+        "system:serviceaccount:tushar-web:tushar-web"
+      ]
+    }
+  }
+}
+
+module "tushar_web_role" {
+  source = "../../modules/iam"
+
+  role_name = "${var.environment}-tushar-web-role"
+
+  assume_role_policy_json = data.aws_iam_policy_document.tushar_web_assume_role.json
+
+  inline_policies = {
+    "s3-racer-artifact-read" = jsonencode({
+      Version = "2012-10-17"
+
+      Statement = [
+        {
+          Effect = "Allow"
+
+          Action = [
+            "s3:GetObject"
+          ]
+
+          Resource = [
+            "arn:aws:s3:::devops-racer/artifacts/*"
+          ]
+        }
+      ]
+    })
+  }
+
+  tags = {
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
