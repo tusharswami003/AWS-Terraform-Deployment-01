@@ -8,6 +8,94 @@ permissions:
   contents: read
 
 jobs:
+  Destroy_Root_argocd:
+    name: Destroy Root Argo CD
+    runs-on: ubuntu-latest
+    environment: test
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::190944421381:role/github-actions-terraform-dev
+          aws-region: ap-south-1
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v5
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v5
+
+      - name: Configure EKS kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --region ap-south-1 \
+            --name test-eks-cluster
+
+      - name: Get ALB details
+        id: alb
+        shell: bash
+        run: |
+          ALB_DNS=$(kubectl get ingress tushar-web \
+            -n tushar-web \
+            -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
+            2>/dev/null || true)
+
+          echo "ALB DNS: $ALB_DNS"
+
+          if [ -n "$ALB_DNS" ]; then
+            ALB_ARN=$(aws elbv2 describe-load-balancers \
+              --region ap-south-1 \
+              --query "LoadBalancers[?DNSName=='${ALB_DNS}'].LoadBalancerArn | [0]" \
+              --output text)
+
+            echo "alb_arn=$ALB_ARN" >> "$GITHUB_OUTPUT"
+          fi
+      
+      - name: Stop GitOps reconciliation
+        run: |
+          kubectl patch application test-platform \
+            -n argocd \
+            --type merge \
+            -p '{"metadata":{"finalizers":null}}' \
+            || true
+
+          kubectl delete application test-platform \
+            -n argocd \
+            --ignore-not-found
+
+      - name: Delete application workloads
+        run: |
+          kubectl delete application tushar-web \
+            -n argocd \
+            --ignore-not-found \
+            --wait=true
+      
+      - name: Wait for ALB deletion
+        if: steps.alb.outputs.alb_arn != '' && steps.alb.outputs.alb_arn != 'None'
+        run: |
+          echo "Waiting for ALB to be completely deleted..."
+
+          aws elbv2 wait load-balancers-deleted \
+            --region ap-south-1 \
+            --load-balancer-arns "${{ steps.alb.outputs.alb_arn }}"
+
+          echo "ALB deleted."
+
+      - name: Delete AWS Load Balancer Controller
+        run: |
+          kubectl delete application aws-load-balancer-controller \
+            -n argocd \
+            --ignore-not-found \
+            --wait=true
+
   terraform:
     name: Terraform Test Destroy
     runs-on: ubuntu-latest
