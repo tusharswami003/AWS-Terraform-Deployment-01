@@ -30,35 +30,58 @@ jobs:
       - name: Setup kubectl
         uses: azure/setup-kubectl@v5
 
-      - name: Setup Helm
-        uses: azure/setup-helm@v5
-
       - name: Configure EKS kubeconfig
         run: |
           aws eks update-kubeconfig \
             --region ap-south-1 \
             --name test-eks-cluster
 
+      # Capture both ALB ARNs before deleting either Ingress.
       - name: Get ALB details
         id: alb
         shell: bash
         run: |
-          ALB_DNS=$(kubectl get ingress tushar-web \
-            -n tushar-web \
-            -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
-            2>/dev/null || true)
+          get_alb_arn() {
+            local ingress_name="$1"
+            local namespace="$2"
+            local dns
+            local arn
 
-          echo "ALB DNS: $ALB_DNS"
+            dns=$(kubectl get ingress "$ingress_name" \
+              -n "$namespace" \
+              -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
+              2>/dev/null || true)
 
-          if [ -n "$ALB_DNS" ]; then
-            ALB_ARN=$(aws elbv2 describe-load-balancers \
+            if [[ -z "$dns" ]]; then
+              echo "No ALB hostname found for $namespace/$ingress_name" >&2
+              printf ''
+              return 0
+            fi
+
+            echo "Ingress $namespace/$ingress_name DNS: $dns" >&2
+
+            arn=$(aws elbv2 describe-load-balancers \
               --region ap-south-1 \
-              --query "LoadBalancers[?DNSName=='${ALB_DNS}'].LoadBalancerArn | [0]" \
+              --query "LoadBalancers[?DNSName=='${dns}'].LoadBalancerArn | [0]" \
               --output text)
 
-            echo "alb_arn=$ALB_ARN" >> "$GITHUB_OUTPUT"
-          fi
-      
+            if [[ "$arn" == "None" ]]; then
+              arn=""
+            fi
+
+            printf '%s' "$arn"
+          }
+
+          NORMAL_ALB_ARN=$(get_alb_arn tushar-web tushar-web)
+          DOCKER_ALB_ARN=$(get_alb_arn tushar-web-docker tushar-web-docker)
+
+          echo "Normal app ALB ARN: ${NORMAL_ALB_ARN:-not found}"
+          echo "Docker app ALB ARN: ${DOCKER_ALB_ARN:-not found}"
+
+          echo "normal_alb_arn=$NORMAL_ALB_ARN" >> "$GITHUB_OUTPUT"
+          echo "docker_alb_arn=$DOCKER_ALB_ARN" >> "$GITHUB_OUTPUT"
+
+      # Detach the root Application so it doesn't control child deletion.
       - name: Stop GitOps reconciliation
         run: |
           kubectl patch application test-platform \
@@ -69,39 +92,66 @@ jobs:
 
           kubectl delete application test-platform \
             -n argocd \
-            --ignore-not-found
+            --ignore-not-found \
+            --wait=true \
+            --timeout=5m
 
-      - name: Delete application workloads
+      # Delete both child Applications while the ALB controller is running.
+      - name: Delete normal and Docker applications
         run: |
           kubectl delete application tushar-web \
             -n argocd \
             --ignore-not-found \
-            --wait=true
-      
-      - name: Wait for ALB deletion
-        if: steps.alb.outputs.alb_arn != '' && steps.alb.outputs.alb_arn != 'None'
+            --wait=true \
+            --timeout=15m
+
+          kubectl delete application tushar-web-docker \
+            -n argocd \
+            --ignore-not-found \
+            --wait=true \
+            --timeout=15m
+
+      # Do not delete the controller until both ALBs are gone.
+      - name: Wait for both ALBs to be deleted
+        env:
+          NORMAL_ALB_ARN: ${{ steps.alb.outputs.normal_alb_arn }}
+          DOCKER_ALB_ARN: ${{ steps.alb.outputs.docker_alb_arn }}
+        shell: bash
         run: |
-          echo "Waiting for ALB to be completely deleted..."
+          wait_for_alb() {
+            local arn="$1"
+            local app_name="$2"
 
-          aws elbv2 wait load-balancers-deleted \
-            --region ap-south-1 \
-            --load-balancer-arns "${{ steps.alb.outputs.alb_arn }}"
+            if [[ -z "$arn" || "$arn" == "None" ]]; then
+              echo "No ALB ARN captured for $app_name; skipping its waiter."
+              return 0
+            fi
 
-          echo "ALB deleted."
+            echo "Waiting for $app_name ALB to be deleted: $arn"
+
+            aws elbv2 wait load-balancers-deleted \
+              --region ap-south-1 \
+              --load-balancer-arns "$arn"
+
+            echo "$app_name ALB has been deleted."
+          }
+
+          wait_for_alb "$NORMAL_ALB_ARN" "normal app"
+          wait_for_alb "$DOCKER_ALB_ARN" "Docker app"
 
       - name: Delete AWS Load Balancer Controller
         run: |
           kubectl delete application aws-load-balancer-controller \
             -n argocd \
             --ignore-not-found \
-            --wait=true
+            --wait=true \
+            --timeout=15m
 
   terraform:
     name: Terraform Test Destroy
     environment: test
     runs-on: ubuntu-latest
     needs: Destroy_Root_argocd
-    
 
     defaults:
       run:
@@ -133,4 +183,4 @@ jobs:
         run: terraform plan -destroy
 
       - name: Terraform Destroy
-        run: terraform destroy -auto-approve 
+        run: terraform destroy -auto-approve
