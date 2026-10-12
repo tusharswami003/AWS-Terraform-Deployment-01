@@ -98,7 +98,10 @@ jobs:
 
   terraform:
     name: Terraform Test Destroy
+    environment: test
     runs-on: ubuntu-latest
+    needs: Destroy_Root_argocd
+    
 
     defaults:
       run:
