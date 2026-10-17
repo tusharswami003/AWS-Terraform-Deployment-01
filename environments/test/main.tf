@@ -288,3 +288,56 @@ module "tushar_web_role" {
     Project     = var.project_name
   }
 }
+
+
+data "aws_iam_policy_document" "ebs_csi_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.eks.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.oidc_issuer_url, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.oidc_issuer_url, "https://", "")}:sub"
+      values   = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
+    }
+  }
+}
+
+module "ebs_csi_driver_role" {
+  source = "../../modules/iam"
+
+  role_name               = "${var.environment}-ebs-csi-driver-role"
+  assume_role_policy_json = data.aws_iam_policy_document.ebs_csi_assume_role.json
+
+  managed_policy_arns = [
+    "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  ]
+
+  tags = {
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+  }
+}
+
+resource "aws_eks_addon" "ebs_csi_driver" {
+  cluster_name             = module.eks.cluster_name
+  addon_name               = "aws-ebs-csi-driver"
+  service_account_role_arn = module.ebs_csi_driver_role.role_arn
+
+  depends_on = [
+    aws_iam_openid_connect_provider.eks,
+    module.ebs_csi_driver_role,
+    module.eks_node_group
+  ]
+}
