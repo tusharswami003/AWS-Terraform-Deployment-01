@@ -52,10 +52,10 @@ kubernetes_version = "1.36"
 
 eks_admin_principal_arn = "arn:aws:iam::190944421381:root"
 
-eks_node_group_name = "test-eks-node-group-v3"
+eks_node_group_name = "test-eks-node-group-v4"
 
 eks_instance_types = [
-  "t3.small"
+  "m7i-flex.large"
 ]
 
 eks_capacity_type = "ON_DEMAND"
