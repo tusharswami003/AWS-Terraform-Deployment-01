@@ -98,6 +98,7 @@ jobs:
           umask 077
 
           smtp_dir=$(mktemp -d)
+          export SMTP_DIR="$smtp_dir"
           trap 'rm -rf "$smtp_dir"' EXIT
 
           terraform output -raw ses_smtp_username > "$smtp_dir/username"
@@ -105,6 +106,61 @@ jobs:
 
           test -s "$smtp_dir/username"
           test -s "$smtp_dir/password"
+
+          python3 <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          directory = Path(os.environ["SMTP_DIR"])
+          email = os.environ["TF_VAR_alert_sender_email"].strip()
+
+          if not email:
+              raise SystemExit("Sender email is missing")
+
+          config = {
+              "global": {
+                  "smtp_smarthost": "email-smtp.ap-south-1.amazonaws.com:587",
+                  "smtp_from": email,
+                  "smtp_auth_username": (
+                      directory / "username"
+                  ).read_text().strip(),
+                  "smtp_auth_password": (
+                      directory / "password"
+                  ).read_text().strip(),
+                  "smtp_require_tls": True,
+              },
+              "route": {
+                  "receiver": "null",
+                  "group_by": ["namespace", "alertname"],
+                  "group_wait": "30s",
+                  "group_interval": "1m",
+                  "repeat_interval": "4h",
+                  "routes": [
+                      {
+                          "receiver": "ses-email",
+                          "matchers": ['alertname="SESDeliveryTest"'],
+                      }
+                  ],
+              },
+              "receivers": [
+                  {"name": "null"},
+                  {
+                      "name": "ses-email",
+                      "email_configs": [
+                          {
+                              "to": email,
+                              "send_resolved": True,
+                          }
+                      ],
+                  },
+              ],
+          }
+
+          (directory / "alertmanager.yaml").write_text(
+              json.dumps(config, indent=2)
+          )
+          PY
 
           kubectl create namespace monitoring \
             --dry-run=client -o yaml \
@@ -114,6 +170,7 @@ jobs:
             --namespace monitoring \
             --from-file=username="$smtp_dir/username" \
             --from-file=password="$smtp_dir/password" \
+            --from-file=alertmanager.yaml="$smtp_dir/alertmanager.yaml" \
             --dry-run=client -o yaml \
             | kubectl apply --server-side \
                 --field-manager=monitoring-bootstrap -f -
