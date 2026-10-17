@@ -7,15 +7,29 @@ permissions:
   id-token: write
   contents: read
 
+concurrency:
+  group: eks-test-lifecycle
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-south-1
+  EKS_CLUSTER_NAME: test-eks-cluster
+  ARGOCD_NAMESPACE: argocd
+  ROOT_APPLICATION: test-platform
+  TF_VAR_alert_sender_email: ${{ secrets.ALERT_SENDER_EMAIL }}
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
 jobs:
-  Destroy_Root_argocd:
-    name: Destroy Root Argo CD
+  destroy:
+    name: Argo CD cleanup followed by Terraform destroy
     runs-on: ubuntu-latest
     environment: test
+    timeout-minutes: 120
 
-    permissions:
-      id-token: write
-      contents: read
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout Repository
@@ -30,157 +44,364 @@ jobs:
       - name: Setup kubectl
         uses: azure/setup-kubectl@v5
 
-      - name: Configure EKS kubeconfig
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_wrapper: false
+
+      # Validate before making any destructive Kubernetes changes.
+      - name: Validate Terraform and prepare destroy plan
+        working-directory: environments/test
         run: |
+          set -euo pipefail
+
+          test -n "$TF_VAR_alert_sender_email"
+
+          terraform init -input=false
+          terraform validate
+          terraform plan \
+            -destroy \
+            -input=false \
+            -lock-timeout=5m \
+            -out=destroy.tfplan
+
+      - name: Configure EKS access
+        run: |
+          set -euo pipefail
+
           aws eks update-kubeconfig \
-            --region ap-south-1 \
-            --name test-eks-cluster
+            --region "$AWS_REGION" \
+            --name "$EKS_CLUSTER_NAME"
 
-      # Capture both ALB ARNs before deleting either Ingress.
-      - name: Get ALB details
-        id: alb
-        shell: bash
+          kubectl get nodes
+
+      - name: Validate Application teardown configuration
         run: |
-          get_alb_arn() {
-            local ingress_name="$1"
-            local namespace="$2"
-            local dns
-            local arn
+          set -euo pipefail
 
-            dns=$(kubectl get ingress "$ingress_name" \
-              -n "$namespace" \
-              -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
-              2>/dev/null || true)
+          kubectl get applications.argoproj.io \
+            -n "$ARGOCD_NAMESPACE" \
+            -o json > "$RUNNER_TEMP/applications.json"
 
-            if [[ -z "$dns" ]]; then
-              echo "No ALB hostname found for $namespace/$ingress_name" >&2
-              printf ''
-              return 0
-            fi
+          # Every remaining child in this dedicated Argo installation must
+          # have a supported phase, environment label and cascade finalizer.
+          jq -e --arg root "$ROOT_APPLICATION" '
+            [
+              .items[]
+              | select(.metadata.name != $root)
+              | select(
+                  .metadata.labels["teardown.tushar.dev/environment"] != "test"
+                  or (
+                    (
+                      .metadata.labels["teardown.tushar.dev/phase"]
+                      | IN("workloads", "platform", "controllers")
+                    ) | not
+                  )
+                  or (
+                    (
+                      (.metadata.finalizers // [])
+                      | index("resources-finalizer.argocd.argoproj.io")
+                    ) == null
+                  )
+                )
+            ] | length == 0
+          ' "$RUNNER_TEMP/applications.json"
 
-            echo "Ingress $namespace/$ingress_name DNS: $dns" >&2
+          # The root must be safe to remove without cascading.
+          jq -e --arg root "$ROOT_APPLICATION" '
+            [
+              .items[]
+              | select(.metadata.name == $root)
+              | (.metadata.finalizers // [])[]
+              | select(startswith("resources-finalizer.argocd.argoproj.io"))
+            ] | length == 0
+          ' "$RUNNER_TEMP/applications.json"
 
-            arn=$(aws elbv2 describe-load-balancers \
-              --region ap-south-1 \
-              --query "LoadBalancers[?DNSName=='${dns}'].LoadBalancerArn | [0]" \
-              --output text)
+          # This repository currently uses app-of-apps, not ApplicationSets.
+          # Stop explicitly if a future ApplicationSet could recreate children.
+          if kubectl api-resources -o name \
+            | grep -qx 'applicationsets.argoproj.io'; then
+            kubectl get applicationsets.argoproj.io \
+              -n "$ARGOCD_NAMESPACE" \
+              -o json \
+              | jq -e '.items | length == 0'
+          fi
 
-            if [[ "$arn" == "None" ]]; then
-              arn=""
-            fi
-
-            printf '%s' "$arn"
-          }
-
-          NORMAL_ALB_ARN=$(get_alb_arn tushar-web tushar-web)
-          DOCKER_ALB_ARN=$(get_alb_arn tushar-web-docker tushar-web-docker)
-
-          echo "Normal app ALB ARN: ${NORMAL_ALB_ARN:-not found}"
-          echo "Docker app ALB ARN: ${DOCKER_ALB_ARN:-not found}"
-
-          echo "normal_alb_arn=$NORMAL_ALB_ARN" >> "$GITHUB_OUTPUT"
-          echo "docker_alb_arn=$DOCKER_ALB_ARN" >> "$GITHUB_OUTPUT"
-
-      # Detach the root Application so it doesn't control child deletion.
-      - name: Stop GitOps reconciliation
+      - name: Capture disposable storage before deleting Applications
         run: |
-          kubectl patch application test-platform \
-            -n argocd \
-            --type merge \
-            -p '{"metadata":{"finalizers":null}}' \
-            || true
+          set -euo pipefail
 
-          kubectl delete application test-platform \
-            -n argocd \
+          kubectl get namespaces \
+            -l 'teardown.tushar.dev/environment=test,teardown.tushar.dev/disposable=true' \
+            -o json \
+            | jq '[.items[].metadata.name]' \
+            > "$RUNNER_TEMP/disposable-namespaces.json"
+
+          # Never allow these namespaces into the disposable list.
+          jq -e '
+            [
+              .[]
+              | select(
+                  . == "kube-system"
+                  or . == "kube-public"
+                  or . == "kube-node-lease"
+                  or . == "argocd"
+                )
+            ] | length == 0
+          ' "$RUNNER_TEMP/disposable-namespaces.json"
+
+          kubectl get pv -o json > "$RUNNER_TEMP/pvs.json"
+
+          # All current PVs must belong to an explicitly disposable namespace,
+          # use EBS CSI, and already have Delete reclaim policy.
+          jq -e \
+            --slurpfile namespaces "$RUNNER_TEMP/disposable-namespaces.json" '
+            [
+              .items[]
+              | .spec.claimRef.namespace as $ns
+              | select(
+                  (($namespaces[0] | index($ns)) == null)
+                  or .spec.csi.driver != "ebs.csi.aws.com"
+                  or .spec.persistentVolumeReclaimPolicy != "Delete"
+                )
+            ] | length == 0
+          ' "$RUNNER_TEMP/pvs.json"
+
+          jq -r '.items[].metadata.name' \
+            "$RUNNER_TEMP/pvs.json" \
+            > "$RUNNER_TEMP/pv-names.txt"
+
+          jq -r '.items[].spec.csi.volumeHandle' \
+            "$RUNNER_TEMP/pvs.json" \
+            > "$RUNNER_TEMP/volume-ids.txt"
+
+          echo "Captured disposable namespaces:"
+          jq -r '.[]' "$RUNNER_TEMP/disposable-namespaces.json"
+
+          echo "Captured persistent volumes:"
+          cat "$RUNNER_TEMP/pv-names.txt"
+
+      - name: Capture cluster-owned AWS load balancers
+        run: |
+          set -euo pipefail
+
+          : > "$RUNNER_TEMP/load-balancers.txt"
+
+          aws elbv2 describe-load-balancers \
+            --query 'LoadBalancers[].LoadBalancerArn' \
+            --output json \
+            | jq -r '.[]' > "$RUNNER_TEMP/all-load-balancers.txt"
+
+          while IFS= read -r arn; do
+            [[ -n "$arn" ]] || continue
+
+            aws elbv2 describe-tags \
+              --resource-arns "$arn" \
+              --output json > "$RUNNER_TEMP/lb-tags.json"
+
+            if jq -e --arg cluster "$EKS_CLUSTER_NAME" '
+              any(
+                .TagDescriptions[].Tags[];
+                (
+                  .Key == "elbv2.k8s.aws/cluster"
+                  and .Value == $cluster
+                )
+                or (
+                  .Key == ("kubernetes.io/cluster/" + $cluster)
+                  and .Value == "owned"
+                )
+              )
+            ' "$RUNNER_TEMP/lb-tags.json" > /dev/null; then
+              printf '%s\n' "$arn" >> "$RUNNER_TEMP/load-balancers.txt"
+            fi
+          done < "$RUNNER_TEMP/all-load-balancers.txt"
+
+          echo "Captured cluster-owned load balancers:"
+          cat "$RUNNER_TEMP/load-balancers.txt"
+
+      - name: Remove root Application without cascading
+        run: |
+          set -euo pipefail
+
+          kubectl delete application "$ROOT_APPLICATION" \
+            -n "$ARGOCD_NAMESPACE" \
+            --cascade=orphan \
             --ignore-not-found \
             --wait=true \
             --timeout=5m
 
-      # Delete both child Applications while the ALB controller is running.
-      - name: Delete normal and Docker applications
+      - name: Cascade-delete workload Applications
         run: |
-          kubectl delete application tushar-web \
-            -n argocd \
-            --ignore-not-found \
-            --wait=true \
-            --timeout=15m
+          set -euo pipefail
 
-          kubectl delete application tushar-web-docker \
-            -n argocd \
-            --ignore-not-found \
+          kubectl delete applications.argoproj.io \
+            -n "$ARGOCD_NAMESPACE" \
+            -l 'teardown.tushar.dev/environment=test,teardown.tushar.dev/phase=workloads' \
             --wait=true \
-            --timeout=15m
+            --timeout=20m
 
-      # Do not delete the controller until both ALBs are gone.
-      - name: Wait for both ALBs to be deleted
-        env:
-          NORMAL_ALB_ARN: ${{ steps.alb.outputs.normal_alb_arn }}
-          DOCKER_ALB_ARN: ${{ steps.alb.outputs.docker_alb_arn }}
-        shell: bash
+      - name: Cascade-delete platform Applications
         run: |
-          wait_for_alb() {
-            local arn="$1"
-            local app_name="$2"
+          set -euo pipefail
 
-            if [[ -z "$arn" || "$arn" == "None" ]]; then
-              echo "No ALB ARN captured for $app_name; skipping its waiter."
-              return 0
-            fi
+          kubectl delete applications.argoproj.io \
+            -n "$ARGOCD_NAMESPACE" \
+            -l 'teardown.tushar.dev/environment=test,teardown.tushar.dev/phase=platform' \
+            --wait=true \
+            --timeout=20m
 
-            echo "Waiting for $app_name ALB to be deleted: $arn"
+      - name: Delete leftover disposable PVCs
+        run: |
+          set -euo pipefail
 
+          while IFS= read -r namespace; do
+            [[ -n "$namespace" ]] || continue
+
+            # A cascading Application deletion may already remove its namespace.
+            existing=$(kubectl get namespace "$namespace" \
+              --ignore-not-found -o name)
+
+            [[ -n "$existing" ]] || continue
+
+            # Do not remove storage while untracked consumers are still running.
+            deadline=$((SECONDS + 600))
+
+            while [[ $(kubectl get pods -n "$namespace" \
+              -o json | jq '.items | length') -gt 0 ]]; do
+              if (( SECONDS >= deadline )); then
+                echo "Pods remain in $namespace; refusing to delete storage."
+                kubectl get pods -n "$namespace"
+                exit 1
+              fi
+
+              echo "Waiting for pods to disappear from $namespace..."
+              sleep 10
+            done
+
+            kubectl delete pvc \
+              --all \
+              -n "$namespace" \
+              --wait=true \
+              --timeout=15m
+          done < <(jq -r '.[]' "$RUNNER_TEMP/disposable-namespaces.json")
+
+      - name: Wait for PV and EBS deletion
+        run: |
+          set -euo pipefail
+
+          deadline=$((SECONDS + 900))
+
+          while IFS= read -r pv; do
+            [[ -n "$pv" ]] || continue
+
+            while [[ -n $(kubectl get pv "$pv" \
+              --ignore-not-found -o name) ]]; do
+              if (( SECONDS >= deadline )); then
+                echo "PV cleanup timed out: $pv"
+                kubectl describe pv "$pv"
+                exit 1
+              fi
+
+              echo "Waiting for PV deletion: $pv"
+              sleep 10
+            done
+          done < "$RUNNER_TEMP/pv-names.txt"
+
+          while IFS= read -r volume; do
+            [[ -n "$volume" ]] || continue
+
+            echo "Waiting for EBS deletion: $volume"
+            aws ec2 wait volume-deleted \
+              --volume-ids "$volume"
+          done < "$RUNNER_TEMP/volume-ids.txt"
+
+      - name: Verify load-balancer cleanup before deleting controllers
+        run: |
+          set -euo pipefail
+
+          while IFS= read -r arn; do
+            [[ -n "$arn" ]] || continue
+
+            echo "Waiting for load-balancer deletion: $arn"
             aws elbv2 wait load-balancers-deleted \
-              --region ap-south-1 \
               --load-balancer-arns "$arn"
+          done < "$RUNNER_TEMP/load-balancers.txt"
 
-            echo "$app_name ALB has been deleted."
-          }
+          # Catch unmanaged Kubernetes resources before removing their controller.
+          kubectl get ingress -A -o json \
+            | jq -e '.items | length == 0'
 
-          wait_for_alb "$NORMAL_ALB_ARN" "normal app"
-          wait_for_alb "$DOCKER_ALB_ARN" "Docker app"
+          kubectl get services -A -o json \
+            | jq -e '
+                [.items[] | select(.spec.type == "LoadBalancer")]
+                | length == 0
+              '
 
-      - name: Delete AWS Load Balancer Controller
+          if kubectl api-resources -o name \
+            | grep -qx 'targetgroupbindings.elbv2.k8s.aws'; then
+            kubectl get targetgroupbindings.elbv2.k8s.aws -A -o json \
+              | jq -e '.items | length == 0'
+          fi
+
+      - name: Cascade-delete controller Applications
         run: |
-          kubectl delete application aws-load-balancer-controller \
-            -n argocd \
-            --ignore-not-found \
+          set -euo pipefail
+
+          kubectl delete applications.argoproj.io \
+            -n "$ARGOCD_NAMESPACE" \
+            -l 'teardown.tushar.dev/environment=test,teardown.tushar.dev/phase=controllers' \
             --wait=true \
             --timeout=15m
 
-  terraform:
-    name: Terraform Test Destroy
-    environment: test
-    runs-on: ubuntu-latest
-    needs: Destroy_Root_argocd
+      - name: Verify Kubernetes cleanup
+        run: |
+          set -euo pipefail
 
-    defaults:
-      run:
+          kubectl get applications.argoproj.io \
+            -n "$ARGOCD_NAMESPACE" -o json \
+            | jq -e '.items | length == 0'
+
+          kubectl get pvc -A -o json \
+            | jq -e '.items | length == 0'
+
+          kubectl get pv -o json \
+            | jq -e '.items | length == 0'
+
+      - name: Destroy Terraform infrastructure
         working-directory: environments/test
+        run: |
+          terraform apply \
+            -input=false \
+            -lock-timeout=5m \
+            destroy.tfplan
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v5
+      - name: Verify Terraform state is empty
+        working-directory: environments/test
+        run: |
+          set -euo pipefail
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::190944421381:role/github-actions-terraform-dev
-          aws-region: ap-south-1
+          remaining=$(terraform state list)
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v4
+          if [[ -n "$remaining" ]]; then
+            echo "Resources remain in Terraform state:"
+            echo "$remaining"
+            exit 1
+          fi
 
-      - name: Terraform Format Check
-        run: terraform fmt -check -recursive
+          echo "Test environment destruction completed."
 
-      - name: Terraform Init
-        run: terraform init
+      - name: Show diagnostics on failure
+        if: failure()
+        run: |
+          kubectl get applications -n argocd --request-timeout=30s || true
+          kubectl get ingress,svc,pvc -A --request-timeout=30s || true
+          kubectl get pv --request-timeout=30s || true
+          kubectl get pods -A --request-timeout=30s || true
+          kubectl get events -A \
+            --field-selector type=Warning \
+            --request-timeout=30s || true
 
-      - name: Terraform Validate
-        run: terraform validate
-
-      - name: Terraform Plan
-        run: terraform plan -destroy
-
-      - name: Terraform Destroy
-        run: terraform destroy -auto-approve
+      - name: Remove local destroy plan
+        if: always()
+        working-directory: environments/test
+        run: rm -f destroy.tfplan
