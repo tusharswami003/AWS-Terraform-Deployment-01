@@ -81,3 +81,8 @@ variable "eks_max_size" {
   description = "Maximum number of EKS worker nodes"
   type        = number
 }
+
+variable "alert_sender_email" {
+  description = "Personal email used as the SES sender for monitoring alerts"
+  type        = string
+}

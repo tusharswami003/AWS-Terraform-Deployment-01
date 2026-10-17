@@ -63,3 +63,4 @@ eks_capacity_type = "ON_DEMAND"
 eks_desired_size = 2
 eks_min_size     = 2
 eks_max_size     = 3
+
