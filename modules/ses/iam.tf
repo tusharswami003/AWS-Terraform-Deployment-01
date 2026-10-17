@@ -35,3 +35,7 @@ resource "aws_iam_user_policy" "smtp_send" {
   user   = aws_iam_user.smtp.name
   policy = data.aws_iam_policy_document.smtp_send.json
 }
+
+resource "aws_iam_access_key" "smtp" {
+  user = aws_iam_user.smtp.name
+}
