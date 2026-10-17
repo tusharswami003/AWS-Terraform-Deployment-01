@@ -60,8 +60,3 @@ output "eks_node_role_arn" {
   description = "IAM role used by EKS worker nodes"
   value       = module.eks_node_role.role_arn
 }
-
-output "smtp_user_name" {
-  description = "IAM user used for Alertmanager SMTP authentication"
-  value       = aws_iam_user.smtp.name
-}
