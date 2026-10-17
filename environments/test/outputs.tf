@@ -60,3 +60,15 @@ output "eks_node_role_arn" {
   description = "IAM role used by EKS worker nodes"
   value       = module.eks_node_role.role_arn
 }
+
+output "ses_smtp_username" {
+  description = "SMTP username for Alertmanager"
+  value       = module.ses.smtp_username
+  sensitive   = true
+}
+
+output "ses_smtp_password" {
+  description = "SMTP password for Alertmanager"
+  value       = module.ses.smtp_password
+  sensitive   = true
+}

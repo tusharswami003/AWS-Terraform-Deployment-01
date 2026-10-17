@@ -341,3 +341,17 @@ resource "aws_eks_addon" "ebs_csi_driver" {
     module.eks_node_group
   ]
 }
+
+module "ses" {
+  source = "../../modules/ses"
+
+  sender_email   = var.alert_sender_email
+  smtp_user_name = "${var.environment}-alertmanager-smtp"
+
+  tags = {
+    Environment = var.environment
+    Project     = var.project_name
+    ManagedBy   = "Terraform"
+    Purpose     = "MonitoringAlerts"
+  }
+}
