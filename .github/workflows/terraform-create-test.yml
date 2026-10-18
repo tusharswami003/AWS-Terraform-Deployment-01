@@ -139,7 +139,9 @@ jobs:
                   "routes": [
                       {
                           "receiver": "ses-email",
-                          "matchers": ['alertname="SESDeliveryTest"'],
+                          "matchers": [
+                            'alertname=~"SESDeliveryTest|NodeMemoryUsageTest|NodeCPUHighUsage|NodeMemoryHighUtilization|KubeNodeNotReady|KubeNodePressure"'
+                          ],
                       }
                   ],
               },
