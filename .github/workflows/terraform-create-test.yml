@@ -161,7 +161,7 @@ jobs:
                       }
                   ],
               },
-              
+
               "receivers": [
                   {"name": "null"},
                   {
@@ -173,6 +173,26 @@ jobs:
                           }
                       ],
                   },
+              ],
+          
+              "inhibit_rules": [
+                  {
+                      "source_matchers": [
+                          'severity="critical"',
+                          'alertname=~"NodeFilesystemSpaceFillingUp|NodeFilesystemAlmostOutOfSpace|NodeFilesystemFilesFillingUp|NodeFilesystemAlmostOutOfFiles"',
+                      ],
+                      "target_matchers": [
+                          'severity="warning"',
+                          'alertname=~"NodeFilesystemSpaceFillingUp|NodeFilesystemAlmostOutOfSpace|NodeFilesystemFilesFillingUp|NodeFilesystemAlmostOutOfFiles"',
+                      ],
+                      "equal": [
+                          "alertname",
+                          "cluster",
+                          "instance",
+                          "device",
+                          "mountpoint",
+                      ],
+                  }
               ],
           }
 
