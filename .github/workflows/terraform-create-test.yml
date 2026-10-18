@@ -132,19 +132,36 @@ jobs:
               },
               "route": {
                   "receiver": "null",
-                  "group_by": ["namespace", "alertname"],
+                  "group_by": ["namespace", "alertname", "severity"],
                   "group_wait": "30s",
-                  "group_interval": "1m",
-                  "repeat_interval": "4h",
+                  "group_interval": "5m",
+                  "repeat_interval": "6h",
+
                   "routes": [
                       {
                           "receiver": "ses-email",
+
                           "matchers": [
-                            'alertname=~"SESDeliveryTest|NodeMemoryUsageTest|NodeCPUHighUsage|NodeMemoryHighUtilization|KubeNodeNotReady|KubeNodePressure"'
+                              'alertname=~"NodeCPUHighUsage|NodeMemoryHighUtilization|KubeNodeNotReady|KubeNodePressure|NodeFilesystemSpaceFillingUp|NodeFilesystemAlmostOutOfSpace|NodeFilesystemFilesFillingUp|NodeFilesystemAlmostOutOfFiles"'
+                          ],
+
+                          "routes": [
+                              {
+                                  "receiver": "ses-email",
+                                  "matchers": ['severity="critical"'],
+                                  "group_wait": "10s",
+                                  "repeat_interval": "1h",
+                              },
+                              {
+                                  "receiver": "ses-email",
+                                  "matchers": ['severity="warning"'],
+                                  "repeat_interval": "6h",
+                              },
                           ],
                       }
                   ],
               },
+              
               "receivers": [
                   {"name": "null"},
                   {
